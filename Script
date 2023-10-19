@@ -1,0 +1,60 @@
+// Project: Automatic Copy and Paste Values
+// Author: Alexandre Pawlicki Maule
+// Date: October 17, 2023
+// Description: Copy values and paste them to remove working formulas in the sheet.
+//              With less working formulas in the sheet, it will work and refresh 
+//              more smoothly.
+
+function copyAndPaste() {
+  // grabbing the Spreadsheet and Sheet that we will work on.
+  var ss = SpreadsheetApp.openById("SPREADSHEET_ID");
+  var sheet = ss.getSheetByName("SHEET_NAME")
+
+  // run the function that decides the range that will be copied and pasted.
+  var rangeInput = desiredRange(sheet);
+
+  // run the function that will copy and paste the values.
+  var range = sheet.getRange("N"+rangeInput[0]+":"+"Q"+rangeInput[1]);
+  range.copyTo(range,SpreadsheetApp.CopyPasteType.PASTE_VALUES,false);
+}
+
+function desiredRange(sheet) {
+  var range = sheet.getRange('B:B');
+
+  // get last row with content on Column B
+  var lastRow = range.getNextDataCell(SpreadsheetApp.Direction.DOWN).getA1Notation();
+  lastRow = parseInt(lastRow.slice(1,lastRow.length));
+
+  // setting up the constants to calculate the desired dates
+  const millis_per_day = 1000 * 60 * 60 * 24;
+  const now = new Date();
+  // Variables for 2 days ago and 4 days ago.
+  var twoDaysAgo = new Date(now.getTime() - 2 * millis_per_day);
+  var fourDaysAgo = new Date(now.getTime() - 4 * millis_per_day);
+  twoDaysAgo = Utilities.formatDate(twoDaysAgo,"TIMEZONE","MM/dd/yyyy");
+  fourDaysAgo = Utilities.formatDate(fourDaysAgo, "TIMEZONE","MM/dd/yyyy");
+
+  //Variables that will keep the starting and ending rows to be copied and pasted.
+  var bottomTwoDaysAgoRow = 0;
+  var bottomFourDaysAgoRow = 0;
+
+  // for loop to find the rows that will need to be copied and pasted.
+  for (var i=lastRow; i>5000 ; i--) {
+
+    // grabbing the date of the cell to compare and see if it is relevant.
+    var date = Utilities.formatDate(sheet.getRange('B'+ i).getValue(),"TIMEZONE","MM/dd/yyyy");
+    
+    // grabbing the first row with yesterday's date.
+    if (bottomTwoDaysAgoRow == 0 & date == twoDaysAgo) {
+      bottomTwoDaysAgoRow = i;
+    }
+
+    // grabbing the last row with yesterday's date.
+    if (bottomFourDaysAgoRow == 0 & date == fourDaysAgo){
+      bottomFourDaysAgoRow = i;
+      break;
+    }
+  }
+
+  return ([bottomFourDaysAgoRow,bottomTwoDaysAgoRow]);
+}
